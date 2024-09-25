@@ -1,5 +1,6 @@
 package br.com.desafio_caju.infra.entities
 
+import br.com.desafio_caju.app.dto.TransactionRequest
 import jakarta.persistence.*
 import java.time.LocalDateTime
 
@@ -17,5 +18,12 @@ data class TransactionEntity(
     val merchant: String,
     @Column(name = "data_transaction")
     val dataTransaction: LocalDateTime = LocalDateTime.now()
-)
-
+){
+    constructor(transactionRequest: TransactionRequest) : this(
+        id = transactionRequest.id,
+        account = transactionRequest.account,
+        totalAmount = transactionRequest.totalAmount,
+        mcc = transactionRequest.mcc,
+        merchant = transactionRequest.merchant
+    )
+}
