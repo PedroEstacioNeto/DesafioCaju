@@ -5,10 +5,9 @@ import java.time.LocalDateTime
 
 @Entity(name = "transaction")
 data class TransactionEntity(
-    @Id
+    @Id @GeneratedValue(strategy = GenerationType.AUTO)
     val id: String,
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "account_id")
+    @Column(name = "account")
     val account: String,
     @Column(name = "total_amount")
     val totalAmount: Double,

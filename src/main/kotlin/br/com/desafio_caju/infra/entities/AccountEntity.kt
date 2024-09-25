@@ -12,10 +12,10 @@ import lombok.Setter
 data class AccountEntity(
     @Id
     val id: String,
-    @Column(name = "food_amount")
-    val foodAmount: Double,
-    @Column(name = "meal_amount")
-    val mealAmount: Double,
-    @Column(name = "cash_amount")
-    val cashAmount: Double
+    @Column(name = "food_balance")
+    val foodBalance: Double,
+    @Column(name = "meal_balance")
+    val mealBalance: Double,
+    @Column(name = "cash_balance")
+    val cashBalance: Double
 )
