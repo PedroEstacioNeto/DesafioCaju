@@ -2,7 +2,6 @@ package br.com.desafio_caju.app.rest
 
 import br.com.desafio_caju.app.dto.TransactionRequest
 import br.com.desafio_caju.app.dto.TransactionResponse
-import br.com.desafio_caju.app.dto.enums.TransactionStatus
 import br.com.desafio_caju.app.service.TransactionService
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.PostMapping

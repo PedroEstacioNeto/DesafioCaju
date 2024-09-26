@@ -1,9 +1,12 @@
 package br.com.desafio_caju.domain.usecase.impl
 
+import br.com.desafio_caju.app.configuration.MccValues
 import br.com.desafio_caju.app.dto.TransactionRequest
 import br.com.desafio_caju.app.dto.enums.TransactionStatus
 import br.com.desafio_caju.domain.mapper.TransactionMapper
 import br.com.desafio_caju.domain.usecase.TransactionUseCase
+import br.com.desafio_caju.infra.entities.AccountEntity
+import br.com.desafio_caju.infra.entities.enums.AmountType
 import br.com.desafio_caju.infra.repositories.AccountRepository
 import br.com.desafio_caju.infra.repositories.TransactionRepository
 import org.slf4j.Logger
@@ -12,6 +15,7 @@ import org.springframework.stereotype.Component
 
 @Component
 class ImplTransactionUseCase(
+    val mccValues: MccValues,
     val mapper: TransactionMapper,
     val repository: TransactionRepository,
     val accountRepository: AccountRepository
@@ -24,15 +28,21 @@ class ImplTransactionUseCase(
 
         try{
             val account = accountRepository.findById(entity.account);
+
             if (account.isPresent){
+
+                val amountType = validateTransactionType(request.mcc);
+                logger.info("method=transaction, step=usecase, AmountTpe={}", amountType);
+
                 response = when {
-                    accountRepository.updateBalances(account.get().id) -> {
+                    validateBalanceIsViable(request, account.get(), amountType) -> {
+                        accountRepository.saveAndFlush(efetuarDebito(request, account.get(), amountType ))
                         repository.save(entity);
-                        logger.info("method=transaction, step=usecase, id={}", account.get().id);
+                        logger.info("method=updateBalance, step=usecase, id={}", account.get().id);
                         TransactionStatus.APPROVED;
                     }
                     else -> {
-                        logger.info("method=transaction, step=usecase, id={}", account.get().id);
+                        logger.info("method=updateBalance, step=usecase, id={}", account.get().id);
                         logger.error("Saldo insuficiente para transaçao, id={}", account.get().id);
                         TransactionStatus.REPROVED;
                     }
@@ -44,6 +54,34 @@ class ImplTransactionUseCase(
            response = TransactionStatus.PROBLEM;
         }
         return response;
+    }
+
+
+    private fun validateTransactionType(mcc: String): AmountType {
+        return when {
+            mcc.isBlank() -> AmountType.CASH
+            mccValues.food.contains(mcc) -> AmountType.FOOD
+            mccValues.meal.contains(mcc) -> AmountType.MEAL
+            else -> AmountType.CASH
+        }
+    }
+
+    private fun validateBalanceIsViable(request: TransactionRequest, account: AccountEntity, mccType: AmountType): Boolean{
+        return when(mccType){
+            AmountType.CASH -> account.cashBalance >= request.totalAmount
+            AmountType.FOOD -> account.foodBalance >= request.totalAmount
+            AmountType.MEAL -> account.mealBalance >= request.totalAmount
+        }
+
+    }
+
+    private fun efetuarDebito(request: TransactionRequest, account: AccountEntity, mccType: AmountType): AccountEntity{
+         when(mccType){
+            AmountType.CASH -> account.cashBalance = account.cashBalance - request.totalAmount
+            AmountType.FOOD -> account.foodBalance = account.foodBalance - request.totalAmount
+            AmountType.MEAL -> account.mealBalance = account.mealBalance - request.totalAmount
+        }
+        return account;
     }
 
     companion object {
