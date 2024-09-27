@@ -8,6 +8,7 @@ import br.com.desafio_caju.domain.usecase.TransactionUseCase
 import br.com.desafio_caju.infra.entities.AccountEntity
 import br.com.desafio_caju.infra.entities.enums.AmountType
 import br.com.desafio_caju.infra.repositories.AccountRepository
+import br.com.desafio_caju.infra.repositories.MerchantRepository
 import br.com.desafio_caju.infra.repositories.TransactionRepository
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -18,7 +19,8 @@ class ImplTransactionUseCase(
     val mccValues: MccValues,
     val mapper: TransactionMapper,
     val repository: TransactionRepository,
-    val accountRepository: AccountRepository
+    val accountRepository: AccountRepository,
+    val merchantRepository: MerchantRepository
 ): TransactionUseCase {
 
     override fun execute(request: TransactionRequest): TransactionStatus{
@@ -31,7 +33,7 @@ class ImplTransactionUseCase(
 
             if (account.isPresent){
 
-                val amountType = validateTransactionType(request.mcc);
+                val amountType = validateTransactionType(request);
                 logger.info("method=transaction, step=usecase, AmountTpe={}", amountType);
 
                 response = when {
@@ -57,12 +59,12 @@ class ImplTransactionUseCase(
     }
 
 
-    private fun validateTransactionType(mcc: String): AmountType {
-        return when {
-            mcc.isBlank() -> AmountType.CASH
-            mccValues.food.contains(mcc) -> AmountType.FOOD
-            mccValues.meal.contains(mcc) -> AmountType.MEAL
-            else -> AmountType.CASH
+    private fun validateTransactionType(request: TransactionRequest): AmountType {
+        if(request.mcc.isEmpty() || request.mcc.isBlank()){
+            val merchant = merchantRepository.findByName(request.merchant);
+            return getAmountType(merchant.merchantMcc);
+        }else{
+            return getAmountType(request.mcc);
         }
     }
 
@@ -73,6 +75,15 @@ class ImplTransactionUseCase(
             AmountType.MEAL -> account.mealBalance >= request.totalAmount
         }
 
+    }
+
+    protected fun getAmountType(mcc: String): AmountType{
+        return when {
+            mcc.isBlank() -> AmountType.CASH
+            mccValues.food.contains(mcc) -> AmountType.FOOD
+            mccValues.meal.contains(mcc) -> AmountType.MEAL
+            else -> AmountType.CASH
+        }
     }
 
     private fun efetuarDebito(request: TransactionRequest, account: AccountEntity, mccType: AmountType): AccountEntity{
